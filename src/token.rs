@@ -27,7 +27,7 @@ pub enum TokenKind {
     Plus,
     Minus,
     Star,
-    Div,
+    Slash,
     EOF,
 }
 #[derive(Debug, PartialEq)]
