@@ -15,7 +15,7 @@ impl Location {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenKind {
     Integer(u64),
     Float(f64),
@@ -28,6 +28,22 @@ pub enum TokenKind {
     Minus,
     Star,
     Slash,
+    Equal,
+    NotEqual,
+    Lthan,
+    Gthan,
+    Lethan,
+    Gethan,
+    Bang,
+    Assign,
+    Colon,
+    KeywordsBegin,
+    Let,
+    If,
+    Else,
+    While,
+    Fn,
+    KeywordsEnd,
     EOF,
 }
 #[derive(Debug, PartialEq)]

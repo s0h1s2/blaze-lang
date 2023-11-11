@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 bumpalo = "3.14.0"
 intaglio = "1.9.1"
+phf = { version = "0.11.2", features = ["macros"] }
+
