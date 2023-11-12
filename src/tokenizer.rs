@@ -4,6 +4,9 @@ pub struct Lexer<'a> {
     source: Vec<char>,
     file_name: &'a str,
     current_pos: usize,
+    col: u64,
+    line: u64,
+    current_token: Option<Token>,
     line: u64,
 }
 static KEYWORDS: phf::Map<&'static str, TokenKind> = phf_map! {
@@ -20,6 +23,9 @@ impl<'a> Lexer<'a> {
             file_name,
             current_pos: 0,
             line: 0,
+            col: 1,
+            current_token: None,
+          
         };
     }
     fn get_char(&self) -> Option<&char> {
@@ -29,6 +35,17 @@ impl<'a> Lexer<'a> {
         return self.get_char().is_none();
     }
     fn advance(&mut self) {
+
+        self.current_pos += 1;
+        self.col += 1;
+    }
+    fn make_token(&mut self, kind: TokenKind) -> Token {
+        let token = Token::new(
+            Location::new(self.file_name.to_string(), self.line, self.col),
+            kind,
+        );
+        self.current_token = Some(token.clone());
+        return token;
         self.current_pos += 1
     }
     fn make_token(&self, kind: TokenKind) -> Token {
@@ -36,6 +53,7 @@ impl<'a> Lexer<'a> {
             Location::new(self.file_name.to_string(), self.line, 1),
             kind,
         );
+
     }
     fn skip_whitespace(&mut self) {
         while !self.is_end() {
@@ -52,6 +70,7 @@ impl<'a> Lexer<'a> {
             let ch = *self.get_char().unwrap();
             if ch == '\n' {
                 self.line += 1;
+                self.col = 0;
                 self.advance();
                 continue;
             }
@@ -94,6 +113,11 @@ impl<'a> Lexer<'a> {
 
         return result;
     }
+    pub fn peek_token(&self) -> Option<&Token> {
+        return self.current_token.as_ref();
+    }
+
+
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
         self.consume_newline();
@@ -313,4 +337,15 @@ mod tests {
         assert_eq!(lex.next_token().get_kind(), &TokenKind::While);
         assert_eq!(lex.next_token().get_kind(), &TokenKind::Fn);
     }
+    #[test]
+    fn test_peek_token() {
+        let mut lex = init_lexer("let");
+        lex.next_token();
+        assert_eq!(lex.peek_token().unwrap().get_kind(), &TokenKind::Let);
+        assert_eq!(lex.peek_token().unwrap().get_kind(), &TokenKind::Let);
+        lex.next_token();
+        assert_eq!(lex.peek_token().unwrap().get_kind(), &TokenKind::EOF);
+        assert_eq!(lex.peek_token().unwrap().get_kind(), &TokenKind::EOF);
+    }
+
 }

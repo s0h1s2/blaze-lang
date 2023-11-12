@@ -1,4 +1,6 @@
+#[derive(Debug, PartialEq, Clone)]
 #[derive(Debug, PartialEq)]
+
 pub struct Location {
     file_name: String,
     line: u64,
@@ -46,7 +48,8 @@ pub enum TokenKind {
     KeywordsEnd,
     EOF,
 }
-#[derive(Debug, PartialEq)]
+
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     loc: Location,
     kind: TokenKind,
