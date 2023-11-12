@@ -14,8 +14,5 @@ fn main() {
     let file_source = fs::read_to_string(file_path).expect("Unable to read file.");
     let mut lex = Lexer::new(file_path, &file_source);
     let mut parser = Parser::new(&mut lex);
-    parser.parse()
-    let token = lex.next_token();
-    println!("{:?}", token)
-
+    parser.parse();
 }

@@ -1,5 +1,4 @@
 #[derive(Debug, PartialEq, Clone)]
-#[derive(Debug, PartialEq)]
 
 pub struct Location {
     file_name: String,

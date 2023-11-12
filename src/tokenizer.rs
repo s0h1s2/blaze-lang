@@ -5,7 +5,6 @@ pub struct Lexer<'a> {
     file_name: &'a str,
     current_pos: usize,
     col: u64,
-    line: u64,
     current_token: Option<Token>,
     line: u64,
 }
@@ -25,7 +24,6 @@ impl<'a> Lexer<'a> {
             line: 0,
             col: 1,
             current_token: None,
-          
         };
     }
     fn get_char(&self) -> Option<&char> {
@@ -35,7 +33,6 @@ impl<'a> Lexer<'a> {
         return self.get_char().is_none();
     }
     fn advance(&mut self) {
-
         self.current_pos += 1;
         self.col += 1;
     }
@@ -46,14 +43,6 @@ impl<'a> Lexer<'a> {
         );
         self.current_token = Some(token.clone());
         return token;
-        self.current_pos += 1
-    }
-    fn make_token(&self, kind: TokenKind) -> Token {
-        return Token::new(
-            Location::new(self.file_name.to_string(), self.line, 1),
-            kind,
-        );
-
     }
     fn skip_whitespace(&mut self) {
         while !self.is_end() {
@@ -116,7 +105,6 @@ impl<'a> Lexer<'a> {
     pub fn peek_token(&self) -> Option<&Token> {
         return self.current_token.as_ref();
     }
-
 
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
@@ -347,5 +335,4 @@ mod tests {
         assert_eq!(lex.peek_token().unwrap().get_kind(), &TokenKind::EOF);
         assert_eq!(lex.peek_token().unwrap().get_kind(), &TokenKind::EOF);
     }
-
 }
