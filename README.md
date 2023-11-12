@@ -1,3 +1,4 @@
 # Blaze Programming Language
+
 ### WIP
 
