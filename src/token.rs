@@ -1,26 +1,26 @@
 #[derive(Debug, PartialEq, Clone)]
 
-pub struct Location {
+pub struct Span {
     file_name: String,
-    line: u64,
-    col: u64,
+    start: usize,
+    end: usize,
 }
 
-impl Location {
-    pub fn new(file_name: String, line: u64, col: u64) -> Self {
-        return Location {
+impl Span {
+    pub fn new(file_name: String, start: usize, end: usize) -> Self {
+        return Span {
             file_name,
-            line,
-            col,
+            start,
+            end,
         };
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenKind {
-    Integer(u64),
-    Float(f64),
-    Identifier(String),
+    Integer,
+    Float,
+    Identifier,
     OpenParan,
     CloseParan,
     OpenBrace,
@@ -45,19 +45,23 @@ pub enum TokenKind {
     While,
     Fn,
     KeywordsEnd,
+    Bad,
     EOF,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
-    loc: Location,
+    loc: Span,
     kind: TokenKind,
 }
 impl Token {
-    pub fn new(loc: Location, kind: TokenKind) -> Self {
-        return Token { loc, kind };
+    pub fn new(loc: Span, kind: TokenKind) -> Self {
+        Token { loc, kind }
     }
     pub fn get_kind(&self) -> &TokenKind {
-        return &self.kind;
+        &self.kind
+    }
+    pub fn get_span(&self) -> (usize, usize) {
+        (self.loc.start, self.loc.end)
     }
 }

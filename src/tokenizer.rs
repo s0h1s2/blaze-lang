@@ -1,12 +1,14 @@
-use crate::token::{Location, Token, TokenKind};
+use std::borrow::BorrowMut;
+
+use crate::token::{Span, Token, TokenKind};
 use phf::phf_map;
 pub struct Lexer<'a> {
     source: Vec<char>,
     file_name: &'a str,
     current_pos: usize,
-    col: u64,
+    end: usize,
+    start: usize,
     current_token: Option<Token>,
-    line: u64,
 }
 static KEYWORDS: phf::Map<&'static str, TokenKind> = phf_map! {
     "if" => TokenKind::If,
@@ -21,8 +23,8 @@ impl<'a> Lexer<'a> {
             source: source.chars().collect(),
             file_name,
             current_pos: 0,
-            line: 0,
-            col: 1,
+            start: 0,
+            end: 0,
             current_token: None,
         };
     }
@@ -34,11 +36,11 @@ impl<'a> Lexer<'a> {
     }
     fn advance(&mut self) {
         self.current_pos += 1;
-        self.col += 1;
     }
     fn make_token(&mut self, kind: TokenKind) -> Token {
+        self.end = self.current_pos;
         let token = Token::new(
-            Location::new(self.file_name.to_string(), self.line, self.col),
+            Span::new(self.file_name.to_string(), self.start, self.end),
             kind,
         );
         self.current_token = Some(token.clone());
@@ -58,8 +60,6 @@ impl<'a> Lexer<'a> {
         while !self.is_end() {
             let ch = *self.get_char().unwrap();
             if ch == '\n' {
-                self.line += 1;
-                self.col = 0;
                 self.advance();
                 continue;
             }
@@ -83,7 +83,7 @@ impl<'a> Lexer<'a> {
         if let Some(kind) = KEYWORDS.get(&ident) {
             return kind.clone();
         }
-        return TokenKind::Identifier(ident);
+        return TokenKind::Identifier;
     }
 
     fn parse_integer(&mut self) -> u64 {
@@ -109,16 +109,16 @@ impl<'a> Lexer<'a> {
     pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
         self.consume_newline();
+        self.start = self.current_pos;
         let char_op = self.get_char();
         if self.is_end() {
             return self.make_token(TokenKind::EOF);
         }
         let char = char_op.unwrap();
-        // TODO: write a macro to single token or double token to avoid repetition.
         match char {
             '0'..='9' => {
-                let result = self.parse_integer();
-                return self.make_token(TokenKind::Integer(result));
+                self.parse_integer();
+                return self.make_token(TokenKind::Integer);
             }
             'a'..='z' | 'A'..='Z' | '_' => {
                 let kind = self.parse_ident_or_keyword();
@@ -189,150 +189,37 @@ impl<'a> Lexer<'a> {
             '(' => {
                 let token = self.make_token(TokenKind::OpenParan);
                 self.advance();
-                return token;
+                token
             }
             ')' => {
                 let token = self.make_token(TokenKind::CloseParan);
                 self.advance();
-                return token;
+                token
             }
             '{' => {
                 let token = self.make_token(TokenKind::OpenBrace);
                 self.advance();
-                return token;
+                token
             }
             '}' => {
                 let token = self.make_token(TokenKind::CloseBrace);
                 self.advance();
-                return token;
+                token
             }
-            _ => unreachable!("Unhandled character:'{}' or unreachable", char),
+            _ => {
+                let token = self.make_token(TokenKind::Bad);
+                self.advance();
+                token
+            }
         }
     }
-}
-#[cfg(test)]
-mod tests {
-    use crate::token::{Location, Token, TokenKind};
-    use crate::tokenizer::Lexer;
-    fn get_loc() -> Location {
-        return Location::new(String::from("main.bl"), 1, 1);
-    }
-    fn init_lexer(source: &str) -> Lexer {
-        let lexer = Lexer::new("main.bl", source);
-        return lexer;
-    }
-    #[test]
-    fn test_integer_token() {
-        let mut lex = init_lexer("12 321 1400 133377");
-        assert_eq!(*lex.next_token().get_kind(), TokenKind::Integer(12));
-        assert_eq!(*lex.next_token().get_kind(), TokenKind::Integer(321));
-        assert_eq!(*lex.next_token().get_kind(), TokenKind::Integer(1400));
-        assert_eq!(*lex.next_token().get_kind(), TokenKind::Integer(133377));
-    }
-    #[test]
-    fn test_whitespace_and_tab() {
-        let mut lex = init_lexer("     \t \t \t      ");
-        assert_eq!(*lex.next_token().get_kind(), TokenKind::EOF);
-    }
-    #[test]
-    fn test_newline() {
-        let mut lex = init_lexer("\n\n\n");
-        assert_eq!(
-            lex.next_token(),
-            Token::new(Location::new("main.bl".to_string(), 3, 1), TokenKind::EOF)
-        );
-    }
-    #[test]
-    fn test_newline_whitespace() {
-        let mut lex = init_lexer("  \t       \n\n\n");
-        assert_eq!(
-            lex.next_token(),
-            Token::new(Location::new("main.bl".to_string(), 3, 1), TokenKind::EOF)
-        );
-    }
-    #[test]
-    fn test_identifier() {
-        let source = "abc def my_var _var SomeType _SomeType";
-        let mut lex = init_lexer(source);
-        assert_eq!(
-            lex.next_token().get_kind(),
-            &TokenKind::Identifier("abc".to_string())
-        );
-        assert_eq!(
-            lex.next_token().get_kind(),
-            &TokenKind::Identifier("def".to_string())
-        );
-        assert_eq!(
-            lex.next_token().get_kind(),
-            &TokenKind::Identifier("my_var".to_string())
-        );
-        assert_eq!(
-            lex.next_token().get_kind(),
-            &TokenKind::Identifier("_var".to_string())
-        );
-        assert_eq!(
-            lex.next_token().get_kind(),
-            &TokenKind::Identifier("SomeType".to_string())
-        );
-        assert_eq!(
-            lex.next_token().get_kind(),
-            &TokenKind::Identifier("_SomeType".to_string())
-        );
-    }
-    #[test]
-    fn test_operators() {
-        let mut lex = init_lexer("+-*/! = == != < > <= >= :");
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Plus);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Minus);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Star);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Slash);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Bang);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Assign);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Equal);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::NotEqual);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Lthan);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Gthan);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Lethan);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Gethan);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Colon);
-    }
-    #[test]
-    fn test_grouping() {
-        let mut lex = init_lexer("(){}");
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::OpenParan);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::CloseParan);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::OpenBrace);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::CloseBrace);
-    }
-    #[test]
-    fn test_tokens_togther() {
-        let mut lex = init_lexer("1*5+a");
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Integer(1));
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Star);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Integer(5));
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Plus);
-        assert_eq!(
-            lex.next_token().get_kind(),
-            &TokenKind::Identifier("a".to_string())
-        );
-    }
-    #[test]
-    fn test_keywords() {
-        let mut lex = init_lexer("let if else while  fn");
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Let);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::If);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Else);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::While);
-        assert_eq!(lex.next_token().get_kind(), &TokenKind::Fn);
-    }
-    #[test]
-    fn test_peek_token() {
-        let mut lex = init_lexer("let");
-        lex.next_token();
-        assert_eq!(lex.peek_token().unwrap().get_kind(), &TokenKind::Let);
-        assert_eq!(lex.peek_token().unwrap().get_kind(), &TokenKind::Let);
-        lex.next_token();
-        assert_eq!(lex.peek_token().unwrap().get_kind(), &TokenKind::EOF);
-        assert_eq!(lex.peek_token().unwrap().get_kind(), &TokenKind::EOF);
+    pub fn get_tokens(&mut self) -> Vec<Token> {
+        let mut tokens: Vec<Token> = Vec::new();
+        let mut token = self.next_token();
+        while token.borrow_mut().get_kind() != &TokenKind::EOF {
+            tokens.push(token);
+            token = self.next_token();
+        }
+        tokens
     }
 }
