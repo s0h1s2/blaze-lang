@@ -20,20 +20,22 @@ fn main() {
             token,
             source_text.get_literal(token.get_span().0, token.get_span().1)
         );
-        if token.get_kind() == &TokenKind::Bad {
-            let (line_no, col, line) = source_text.get_line_by_pos(token.get_span().0).unwrap();
-            let spaces = " ".repeat(col + line_no.to_string().len());
-            let result = format!(
-                "{}|{}\n{}{}\n{}{} {}",
-                line_no.to_string().bright_yellow(),
-                line,
-                spaces,
-                "^".bright_purple(),
-                spaces,
-                "|-->".bright_purple(),
-                "Expected type but got ':'".bright_purple()
-            );
-            println!("{}", result);
-        }
+        source_text.get_line_by_pos(token.get_span().0);
+        // if token.get_kind() == &TokenKind::Bad {
+        //     let (line_no, col, line) = source_text.get_line_by_pos(token.get_span().0).unwrap();
+        //     let spaces = " ".repeat(line_no.to_string().len() + col);
+        //     let result = format!(
+        //         "{}|{}\n{}{}\n{}{} {}",
+        //         line_no.to_string().bright_yellow(),
+        //         line,
+        //         spaces,
+        //         "^".bright_purple(),
+        //         spaces,
+        //         "|-->".bright_purple(),
+        //         "Expected type but got ':'".bright_purple()
+        //     );
+        //     println!("{}", result);
+
+        // }
     }
 }

@@ -8,11 +8,11 @@ pub struct Span {
 
 impl Span {
     pub fn new(file_name: String, start: usize, end: usize) -> Self {
-        return Span {
+        Span {
             file_name,
             start,
             end,
-        };
+        }
     }
 }
 

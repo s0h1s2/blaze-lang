@@ -5,7 +5,7 @@ pub struct Parser<'lexer> {
 }
 impl<'lexer> Parser<'lexer> {
     pub fn new(lex: &'lexer mut Lexer<'lexer>) -> Parser {
-        return Parser { lex };
+        Parser { lex }
     }
     pub fn parse(&mut self) {
         let mut kind = self.lex.next_token();

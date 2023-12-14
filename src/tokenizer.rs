@@ -38,13 +38,17 @@ impl<'a> Lexer<'a> {
         self.current_pos += 1;
     }
     fn make_token(&mut self, kind: TokenKind) -> Token {
-        self.end = self.current_pos;
+        self.end = if self.current_pos == self.start {
+            self.current_pos + 1
+        } else {
+            self.current_pos
+        };
         let token = Token::new(
             Span::new(self.file_name.to_string(), self.start, self.end),
             kind,
         );
         self.current_token = Some(token.clone());
-        return token;
+        token
     }
     fn skip_whitespace(&mut self) {
         while !self.is_end() {
@@ -67,13 +71,13 @@ impl<'a> Lexer<'a> {
         }
     }
     fn test_ident(c: char) -> bool {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+        c.is_ascii_lowercase() || c.is_ascii_uppercase() || c == '_'
     }
     fn parse_ident_or_keyword(&mut self) -> TokenKind {
         let mut ident = String::new();
         while !self.is_end() {
             let ch = *self.get_char().unwrap();
-            if Lexer::test_ident(ch) == true {
+            if Lexer::test_ident(ch) {
                 ident.push(ch);
                 self.advance();
                 continue;
@@ -83,7 +87,7 @@ impl<'a> Lexer<'a> {
         if let Some(kind) = KEYWORDS.get(&ident) {
             return kind.clone();
         }
-        return TokenKind::Identifier;
+        TokenKind::Identifier
     }
 
     fn parse_integer(&mut self) -> u64 {
@@ -91,16 +95,16 @@ impl<'a> Lexer<'a> {
         let mut result: u64 = 0;
         while !self.is_end() {
             let ch = *self.get_char().unwrap();
-            if ch >= '0' && ch <= '9' {
-                result = result * 10;
-                result = result + (ch as u8 - b'0') as u64;
+            if ch.is_ascii_digit() {
+                result *= 10;
+                result += (ch as u8 - b'0') as u64;
                 self.advance();
                 continue;
             }
             break;
         }
 
-        return result;
+        result
     }
     pub fn peek_token(&self) -> Option<&Token> {
         return self.current_token.as_ref();
@@ -118,31 +122,31 @@ impl<'a> Lexer<'a> {
         match char {
             '0'..='9' => {
                 self.parse_integer();
-                return self.make_token(TokenKind::Integer);
+                self.make_token(TokenKind::Integer)
             }
             'a'..='z' | 'A'..='Z' | '_' => {
                 let kind = self.parse_ident_or_keyword();
-                return self.make_token(kind);
+                self.make_token(kind)
             }
             '+' => {
                 let token = self.make_token(TokenKind::Plus);
                 self.advance();
-                return token;
+                token
             }
             '-' => {
                 let token = self.make_token(TokenKind::Minus);
                 self.advance();
-                return token;
+                token
             }
             '*' => {
                 let token = self.make_token(TokenKind::Star);
                 self.advance();
-                return token;
+                token
             }
             '/' => {
                 let token = self.make_token(TokenKind::Slash);
                 self.advance();
-                return token;
+                token
             }
             '!' => {
                 self.advance();
@@ -150,8 +154,8 @@ impl<'a> Lexer<'a> {
                     self.advance();
                     return self.make_token(TokenKind::NotEqual);
                 }
-                let token = self.make_token(TokenKind::Bang);
-                return token;
+
+                self.make_token(TokenKind::Bang)
             }
             '=' => {
                 self.advance();
@@ -160,12 +164,12 @@ impl<'a> Lexer<'a> {
                     self.advance();
                     return token;
                 }
-                let token = self.make_token(TokenKind::Assign);
-                return token;
+
+                self.make_token(TokenKind::Assign)
             }
             ':' => {
                 self.advance();
-                return self.make_token(TokenKind::Colon);
+                self.make_token(TokenKind::Colon)
             }
             '<' => {
                 self.advance();
@@ -173,8 +177,8 @@ impl<'a> Lexer<'a> {
                     self.advance();
                     return self.make_token(TokenKind::Lethan);
                 }
-                let token = self.make_token(TokenKind::Lthan);
-                return token;
+
+                self.make_token(TokenKind::Lthan)
             }
             '>' => {
                 self.advance();
@@ -182,8 +186,7 @@ impl<'a> Lexer<'a> {
                     self.advance();
                     return self.make_token(TokenKind::Gethan);
                 }
-                let token = self.make_token(TokenKind::Gthan);
-                return token;
+                self.make_token(TokenKind::Gthan)
             }
 
             '(' => {
